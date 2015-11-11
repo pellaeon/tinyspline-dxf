@@ -301,23 +301,23 @@ void reshape(GLsizei w, GLsizei h)
 void key(unsigned char key, int x, int y) {
     switch (key) {
         case '-':
-            camera.z -= 0.5;
+            camera.z -= 4;
             break;
         case '=':
-            camera.z += 0.5;
+            camera.z += 4;
             if (camera.z > -2.0) camera.z = -2.0;
             break;
         case 'a':
-            camera.x += 0.5;
+            camera.x += 2;
             break;
         case 'd':
-            camera.x -= 0.5;
+            camera.x -= 2;
             break;
         case 'w':
-            camera.y -= 0.5;
+            camera.y -= 2;
             break;
         case 's':
-            camera.y += 0.5;
+            camera.y += 2;
             break;
         default:
             break;

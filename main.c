@@ -28,6 +28,10 @@ GLUnurbsObj* theNurb[100];
 int splines_cnt;
 float u = 0.f;
 
+struct Boundary {
+    float x_max, y_max, x_min, y_min;
+} boundary;
+
 FILE* fp;
 
 int debug = 0;
@@ -110,6 +114,30 @@ void setup()
                 float u_max;
                 sscanf(pch, "%f", &u_max);
                 if ( debug ) printf("u_max: %f\n", u_max);
+
+            } else if ( strncmp("x_max", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                sscanf(pch, "%f", &(boundary.x_max));
+                if ( debug ) printf("x_max: %f\n", boundary.x_max);
+
+            } else if ( strncmp("y_max", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                sscanf(pch, "%f", &(boundary.y_max));
+                if ( debug ) printf("y_max: %f\n", boundary.y_max);
+
+            } else if ( strncmp("x_min", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                sscanf(pch, "%f", &(boundary.x_min));
+                if ( debug ) printf("x_min: %f\n", boundary.x_min);
+
+            } else if ( strncmp("y_min", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                sscanf(pch, "%f", &(boundary.y_min));
+                if ( debug ) printf("y_min: %f\n", boundary.y_min);
 
             } else {
 
@@ -247,14 +275,15 @@ void nurbsError(GLenum errorCode)
 
 void init(void)
 {
-    camera = (struct Camera) { .x = -110.0, .y = 135.0, .z = -110.0 };
-	viewport = (struct Viewport) { .x = 0.0, .y = 0.0, .w = 500, .h = 500 };
-
 	//glClearColor (0.0, 0.0, 0.0, 0.0);
 	glClearColor(0.588f, 0.564f, 0.568f, 1.0f);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     setup();
+
+    camera = (struct Camera) { .x = boundary.x_max - 100, .y = boundary.y_min + 100, .z = -510.0 };
+	viewport = (struct Viewport) { .x = 0.0, .y = 0.0, .w = boundary.x_max - boundary.x_min + 300, .h = boundary.y_max - boundary.y_min + 300 };
+
 	for ( int i=0; i<=splines_cnt; i++ ) {
 		//theNurb[i] = malloc(sizeof(GLUnurbsObj));
 		theNurb[i] = gluNewNurbsRenderer();

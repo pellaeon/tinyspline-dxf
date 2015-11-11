@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdarg.h>   //  To use functions with variables arguments
+#include <string.h>
 
 struct Camera {
     GLfloat x, y, z;
@@ -22,12 +23,14 @@ float traveled = 0.f;
 float oldEvaluate[2];
 int stateEvaluate = 0;
 
-tsBSpline spline;
-GLUnurbsObj *theNurb;
+tsBSpline* splines[100];
+GLUnurbsObj* theNurb[100];
+int splines_cnt;
 float u = 0.f;
 
-unsigned int n_ctrlp;
-FILE* file_p;
+FILE* fp;
+
+int debug = 0;
 
 /********************************************************
  *                                                       *
@@ -37,40 +40,91 @@ FILE* file_p;
 void setup()
 {
     //file_p = fopen("30x50-spline.nurbs", "r");
-    file_p = fopen("50mm-one-round.nurbs", "r");
-    fscanf(file_p, "n_ctrlp: %u\n", &n_ctrlp);
-    printf("n_ctrlp =: %u\n", n_ctrlp);
+    //fp = fopen("1509077_Samsonite.nurbs", "r");
+    fp = fopen("simple_two.nurbs", "r");
+    if (fp == NULL) perror("Error opening file.");
+    else {
+		unsigned int ctrlp_cnt;
+		char buff[100];
+		while ( fgets(buff, 100, fp) != NULL ) {
 
-    ts_bspline_new(3, 3, n_ctrlp, TS_CLAMPED ,&spline);
+            char* pch = strtok (buff," :\n");
+			int n_ctrlp;
+            if ( strncmp("SPLINE", pch,10) == 0 ) {
+				// check previous line 
+				if ( ctrlp_cnt != n_ctrlp*3 ) {
+					printf("Some control points might be missing\n");
+				}
 
-    float x,y,z;
-    int i=0;
-    fpos_t orig;
-    while( !fgetpos(file_p, &orig) && fscanf(file_p, "ctrlp: %f %f %f\n", &x, &y, &z) == 3 ) {
-        spline.ctrlp[i] = x;
-        i++;
-        spline.ctrlp[i] = y;
-        i++;
-        spline.ctrlp[i] = z;
-        i++;
+                if ( debug ) printf("SPLINE\n");
+				ctrlp_cnt=0;
+				splines_cnt++;
+				/*
+				if ( splines_cnt == 2 ) {
+					splines_cnt--;
+					break;
+				}*/
+				splines[splines_cnt] = malloc(sizeof(tsBSpline));
+
+            } else if ( strncmp("n_ctrlp", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                sscanf(pch, "%d", &n_ctrlp);
+                if ( debug ) printf("n_ctrlp: %d\n", n_ctrlp);
+				ts_bspline_new(3, 3, n_ctrlp, TS_CLAMPED ,splines[splines_cnt]);
+
+            } else if ( strncmp("ctrlp", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                int i;
+                float ctrlp[3];
+                for (i=0; i<3 && pch!=NULL; i++) {
+                    sscanf(pch, "%f", ctrlp+i);
+                    pch = strtok (NULL, " :\n");
+                }
+                if ( debug ) printf ("ctrlp: %f %f %f\n", ctrlp[0], ctrlp[1], ctrlp[2]);
+				splines[splines_cnt]->ctrlp[ctrlp_cnt] = ctrlp[0];
+				ctrlp_cnt++;
+				splines[splines_cnt]->ctrlp[ctrlp_cnt] = ctrlp[1];
+				ctrlp_cnt++;
+				splines[splines_cnt]->ctrlp[ctrlp_cnt] = ctrlp[2];
+				ctrlp_cnt++;
+
+            } else if ( strncmp("knot", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                float knot;
+                sscanf(pch, "%f", &knot);
+                if ( debug ) printf("knot: %f\n", knot);
+
+            } else if ( strncmp("u_min", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                float u_min;
+                sscanf(pch, "%f", &u_min);
+                if ( debug ) printf("u_min: %f\n", u_min);
+
+            } else if ( strncmp("u_max", pch,10) == 0 ) {
+
+                pch = strtok (NULL, " :\n");
+                float u_max;
+                sscanf(pch, "%f", &u_max);
+                if ( debug ) printf("u_max: %f\n", u_max);
+
+            } else {
+
+                printf("Parsing error: %s\n", pch);
+
+            }
+        }
     }
-    fsetpos(file_p, &orig);
 
-    if ( i != n_ctrlp*3 ) {
-        printf("Some control points might be missing\n");
-    }
-
-    int j=0;
-    float knot_val;
-    while( fscanf(file_p, "knot: %f\n", &knot_val) == 1 ) {
-        spline.knots[j] = knot_val;
-        j++;
-    }
 }
 
 void tear_down()
 {
-    ts_bspline_free(&spline);
+	for ( int k=0; k<splines_cnt; k++ )
+		ts_bspline_free(splines[k]);
 }
 
 void display(void)
@@ -84,81 +138,83 @@ void display(void)
     glLoadIdentity();
     glTranslatef(camera.x, camera.y, camera.z);
 
-    // draw spline
-    glColor3f(1.0, 0.85, 0.321);
-    glLineWidth(2);
-    gluBeginCurve(theNurb);
-    gluNurbsCurve(
-                  theNurb,
-                  spline.n_knots,
-                  spline.knots,
-                  spline.dim,
-                  spline.ctrlp,
-                  spline.order,
-                  GL_MAP1_VERTEX_3
-                  );
-    gluEndCurve(theNurb);
+	// draw spline
+	glColor3f(1.0, 0.85, 0.321);
+	glLineWidth(2);
+	for ( int i=0; i<=splines_cnt; i++ ) {
+		gluBeginCurve(theNurb[i]);
+		gluNurbsCurve(
+				theNurb[i],
+				splines[i]->n_knots,
+				splines[i]->knots,
+				splines[i]->dim,
+				splines[i]->ctrlp,
+				splines[i]->order,
+				GL_MAP1_VERTEX_3
+				);
+		gluEndCurve(theNurb[i]);
 
-    // draw control points
-    glColor3f(1.0, 0.913, 0.6);
-    glPointSize(5.0);
-    size_t i;
-    glBegin(GL_POINTS);
-    for (i = 0; i < spline.n_ctrlp; i++) {
-        glVertex3fv(&spline.ctrlp[i * spline.dim]);
-    }
-    glEnd();
+		// draw control points
+		glColor3f(1.0, 0.913, 0.6);
+		glPointSize(5.0);
+		size_t j;
+		glBegin(GL_POINTS);
+		for (j = 0; j < splines[i]->n_ctrlp; j++) {
+			glVertex3fv(&splines[i]->ctrlp[j * splines[i]->dim]);
+		}
+		glEnd();
 
-    // draw evaluation
-    glColor3f(1.0, 1.0, 1.0);
-    glPointSize(6.0);
-    tsDeBoorNet net;
-    ts_bspline_evaluate(&spline, u, &net);
-    glEnable(GL_POINT_SMOOTH);
-    glBegin(GL_POINTS);
-    glVertex3fv(net.result);
-    glEnd();
-    glDisable(GL_POINT_SMOOTH);
+		// draw evaluation
+		glColor3f(1.0, 1.0, 1.0);
+		glPointSize(6.0);
+		tsDeBoorNet net;
+		ts_bspline_evaluate(splines[i], u, &net);
+		glEnable(GL_POINT_SMOOTH);
+		glBegin(GL_POINTS);
+		glVertex3fv(net.result);
+		glEnd();
+		glDisable(GL_POINT_SMOOTH);
 
-    u += 0.001;
-    if (u > 5.f) {
-        u = 0.f;
-        stateEvaluate = 2;
-    }
-
-
-    glMatrixMode( GL_PROJECTION ) ;
-    glPushMatrix() ; // save
-    glLoadIdentity();// and clear
-    glMatrixMode( GL_MODELVIEW ) ;
-    glPushMatrix() ;
-    glLoadIdentity() ;
-
-    glDisable( GL_DEPTH_TEST ) ; // also disable the depth test so renders on top
-
-    glRasterPos2f( -0.95,-0.95 ) ; // center of screen. (-1,0) is center left.
-    glColor3f(0.341, 0.302, 0.31);
-    char buf[300];
-    if (stateEvaluate == 1) {
-        traveled += sqrtf( (net.result[0]-oldEvaluate[0])*(net.result[0]-oldEvaluate[0]) + (net.result[1]-oldEvaluate[1])*(net.result[1]-oldEvaluate[1]) );
-    } else if (stateEvaluate == 0) {
-        stateEvaluate = 1;
-    }
-    oldEvaluate[0] = net.result[0];
-    oldEvaluate[1] = net.result[1];
-    sprintf( buf, "[u]%f [x]%f [y]%f [t]%f", u, net.result[0], net.result[1], traveled) ;
-    const char * p = buf ;
-    do glutBitmapCharacter( GLUT_BITMAP_HELVETICA_12, *p ); while( *(++p) ) ;
-
-    glEnable( GL_DEPTH_TEST ) ; // Turn depth testing back on
-
-    glMatrixMode( GL_PROJECTION ) ;
-    glPopMatrix() ; // revert back to the matrix I had before.
-    glMatrixMode( GL_MODELVIEW ) ;
-    glPopMatrix() ;
+		u += 0.001;
+		if (u > 1.f) {
+			u = 0.f;
+			stateEvaluate = 2;
+		}
 
 
-    ts_deboornet_free(&net);
+		glMatrixMode( GL_PROJECTION ) ;
+		glPushMatrix() ; // save
+		glLoadIdentity();// and clear
+		glMatrixMode( GL_MODELVIEW ) ;
+		glPushMatrix() ;
+		glLoadIdentity() ;
+
+		glDisable( GL_DEPTH_TEST ) ; // also disable the depth test so renders on top
+
+		glRasterPos2f( -0.95,-0.95+0.05*i ) ; // center of screen. (-1,0) is center left.
+		glColor3f(0.341, 0.302, 0.31);
+		char buf[300];
+		if (stateEvaluate == 1) {
+			traveled += sqrtf( (net.result[0]-oldEvaluate[0])*(net.result[0]-oldEvaluate[0]) + (net.result[1]-oldEvaluate[1])*(net.result[1]-oldEvaluate[1]) );
+		} else if (stateEvaluate == 0) {
+			stateEvaluate = 1;
+		}
+		oldEvaluate[0] = net.result[0];
+		oldEvaluate[1] = net.result[1];
+		sprintf( buf, "[u]%f [x]%f [y]%f [t]%f", u, net.result[0], net.result[1], traveled) ;
+		const char * p = buf ;
+		do glutBitmapCharacter( GLUT_BITMAP_HELVETICA_12, *p ); while( *(++p) ) ;
+
+		glEnable( GL_DEPTH_TEST ) ; // Turn depth testing back on
+
+		glMatrixMode( GL_PROJECTION ) ;
+		glPopMatrix() ; // revert back to the matrix I had before.
+		glMatrixMode( GL_MODELVIEW ) ;
+		glPopMatrix() ;
+
+
+		ts_deboornet_free(&net);
+	}
 
     glutSwapBuffers();
     glutPostRedisplay();
@@ -184,16 +240,19 @@ void nurbsError(GLenum errorCode)
 void init(void)
 {
     camera = (struct Camera) { .x = -110.0, .y = 135.0, .z = -110.0 };
-    viewport = (struct Viewport) { .x = 0.0, .y = 0.0, .w = 500, .h = 500 };
+	viewport = (struct Viewport) { .x = 0.0, .y = 0.0, .w = 500, .h = 500 };
 
-    //glClearColor (0.0, 0.0, 0.0, 0.0);
-    glClearColor(0.588f, 0.564f, 0.568f, 1.0f);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    theNurb = gluNewNurbsRenderer();
-    gluNurbsProperty (theNurb, GLU_SAMPLING_TOLERANCE, 10.0);
-    gluNurbsCallback(theNurb, GLU_ERROR, (GLvoid (*)()) nurbsError);
+	//glClearColor (0.0, 0.0, 0.0, 0.0);
+	glClearColor(0.588f, 0.564f, 0.568f, 1.0f);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     setup();
+	for ( int i=0; i<=splines_cnt; i++ ) {
+		//theNurb[i] = malloc(sizeof(GLUnurbsObj));
+		theNurb[i] = gluNewNurbsRenderer();
+		gluNurbsProperty (theNurb[i], GLU_SAMPLING_TOLERANCE, 10.0);
+		gluNurbsCallback(theNurb[i], GLU_ERROR, (GLvoid (*)()) nurbsError);
+	}
 }
 
 void reshape(GLsizei w, GLsizei h)
@@ -232,6 +291,7 @@ void motion(int x, int y) {
 
 int main(int argc, char** argv)
 {
+	splines_cnt=-1;
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize (500, 500);

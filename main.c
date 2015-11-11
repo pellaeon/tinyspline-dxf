@@ -138,6 +138,14 @@ void display(void)
     glLoadIdentity();
     glTranslatef(camera.x, camera.y, camera.z);
 
+    // display camera information
+    {
+        char buf[300];
+        sprintf(buf, "\t\tcamera [x]%f [y]%f [t]%f", camera.x, camera.y, camera.z) ;
+        const char *p = buf;
+        do glutBitmapCharacter( GLUT_BITMAP_HELVETICA_12, *p ); while( *(++p) ) ;
+    }
+
 	// draw spline
 	glColor3f(1.0, 0.85, 0.321);
 	glLineWidth(2);

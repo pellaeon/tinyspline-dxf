@@ -270,6 +270,18 @@ void key(unsigned char key, int x, int y) {
             camera.z += 0.5;
             if (camera.z > -2.0) camera.z = -2.0;
             break;
+        case 'a':
+            camera.x += 0.5;
+            break;
+        case 'd':
+            camera.x -= 0.5;
+            break;
+        case 'w':
+            camera.y -= 0.5;
+            break;
+        case 's':
+            camera.y += 0.5;
+            break;
         default:
             break;
     }

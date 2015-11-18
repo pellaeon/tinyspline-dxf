@@ -19,7 +19,7 @@ struct Viewport {
 
 int oldMouseCoord[2];
 GLfloat panDelta = 1.0;
-float traveled = 0.f;
+float traveled[100] = {0.f};
 float oldEvaluate[2];
 int stateEvaluate = 0;
 
@@ -44,8 +44,8 @@ int debug = 0;
 void setup()
 {
     //file_p = fopen("30x50-spline.nurbs", "r");
-    //fp = fopen("1509077_Samsonite.nurbs", "r");
-    fp = fopen("simple_two.nurbs", "r");
+    fp = fopen("1509077_Samsonite.nurbs", "r");
+    //fp = fopen("simple_two.nurbs", "r");
     if (fp == NULL) perror("Error opening file.");
     else {
 		unsigned int ctrlp_cnt;
@@ -175,9 +175,13 @@ void display(void)
     }
 
 	// draw spline
-	glColor3f(1.0, 0.85, 0.321);
 	glLineWidth(2);
 	for ( int i=0; i<=splines_cnt; i++ ) {
+		if ( i == 10 ) {
+			glColor3f(1.0, 0.0, 0.0); // curve color
+		} else {
+			glColor3f(1.0*i/splines_cnt, 0.85, 0.321); // curve color
+		}
 		gluBeginCurve(theNurb[i]);
 		gluNurbsCurve(
 				theNurb[i],
@@ -201,7 +205,7 @@ void display(void)
 		glEnd();
 
 		// draw evaluation
-		glColor3f(1.0, 1.0, 1.0);
+		glColor3f(1.0, 1.0, 1.0); // moving evaluation point color
 		glPointSize(6.0);
 		tsDeBoorNet net;
 		ts_bspline_evaluate(splines[i], u, &net);
@@ -227,17 +231,22 @@ void display(void)
 
 		glDisable( GL_DEPTH_TEST ) ; // also disable the depth test so renders on top
 
+		//glColor3f(1.0, 0.0, 0.0); // text color
+		if ( i == 10 ) {
+			glColor3f(1.0, 0.0, 0.0); // text color
+		} else {
+			glColor3f(1.0*i/splines_cnt, 0.85, 0.321); // text color
+		}
 		glRasterPos2f( -0.95,-0.95+0.05*i ) ; // center of screen. (-1,0) is center left.
-		glColor3f(0.341, 0.302, 0.31);
 		char buf[300];
 		if (stateEvaluate == 1) {
-			traveled += sqrtf( (net.result[0]-oldEvaluate[0])*(net.result[0]-oldEvaluate[0]) + (net.result[1]-oldEvaluate[1])*(net.result[1]-oldEvaluate[1]) );
+			traveled[i] += sqrtf( (net.result[0]-oldEvaluate[0])*(net.result[0]-oldEvaluate[0]) + (net.result[1]-oldEvaluate[1])*(net.result[1]-oldEvaluate[1]) );
 		} else if (stateEvaluate == 0) {
 			stateEvaluate = 1;
 		}
 		oldEvaluate[0] = net.result[0];
 		oldEvaluate[1] = net.result[1];
-		sprintf( buf, "[u]%f [x]%f [y]%f [t]%f", u, net.result[0], net.result[1], traveled) ;
+		sprintf( buf, "[u]%f [x]%f [y]%f [t]%f", u, net.result[0], net.result[1], traveled[i]) ;
 		const char * p = buf ;
 		do glutBitmapCharacter( GLUT_BITMAP_HELVETICA_12, *p ); while( *(++p) ) ;
 

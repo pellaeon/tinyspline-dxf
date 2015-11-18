@@ -185,7 +185,7 @@ void display(void)
 		for ( int l=0; l<=splines_cnt; l++ )
 			stateEvaluate[l] = 2; // when u reach max_u, every curve reaches its starting point, so evaluation is done
 	}
-	for ( int i=0; i<=splines_cnt; i++ ) {
+	for ( int i=0; i<=splines_cnt; i++ ) { // FIXME i=0 shouldn't work, but it works somehow
 		if ( i == 10 ) {
 			glColor3f(1.0, 0.0, 0.0); // curve color
 		} else {

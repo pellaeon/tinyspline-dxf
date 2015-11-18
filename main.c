@@ -9,6 +9,8 @@
 #include <stdarg.h>   //  To use functions with variables arguments
 #include <string.h>
 
+#define MAX_CURVE_N 100
+
 struct Camera {
     GLfloat x, y, z;
 } camera;
@@ -19,12 +21,13 @@ struct Viewport {
 
 int oldMouseCoord[2];
 GLfloat panDelta = 1.0;
-float traveled[100] = {0.f};
-float oldEvaluate[2];
-int stateEvaluate = 0;
+float traveled[MAX_CURVE_N] = {0.f};
+float oldEvaluateX[MAX_CURVE_N];
+float oldEvaluateY[MAX_CURVE_N];
+int stateEvaluate[MAX_CURVE_N] = {0}; // 0 = not evaluated, 1=evaluating, 2=done
 
-tsBSpline* splines[100];
-GLUnurbsObj* theNurb[100];
+tsBSpline* splines[MAX_CURVE_N];
+GLUnurbsObj* theNurb[MAX_CURVE_N];
 int splines_cnt;
 float u = 0.f;
 
@@ -176,6 +179,12 @@ void display(void)
 
 	// draw spline
 	glLineWidth(2);
+	u += 0.01; // display will be called for every frame, increase u for every frame
+	if (u > 1.f) { // TODO customize max u for every curve
+		u = 0.f;
+		for ( int l=0; l<=splines_cnt; l++ )
+			stateEvaluate[l] = 2; // when u reach max_u, every curve reaches its starting point, so evaluation is done
+	}
 	for ( int i=0; i<=splines_cnt; i++ ) {
 		if ( i == 10 ) {
 			glColor3f(1.0, 0.0, 0.0); // curve color
@@ -215,13 +224,6 @@ void display(void)
 		glEnd();
 		glDisable(GL_POINT_SMOOTH);
 
-		u += 0.001;
-		if (u > 1.f) {
-			u = 0.f;
-			stateEvaluate = 2;
-		}
-
-
 		glMatrixMode( GL_PROJECTION ) ;
 		glPushMatrix() ; // save
 		glLoadIdentity();// and clear
@@ -239,13 +241,13 @@ void display(void)
 		}
 		glRasterPos2f( -0.95,-0.95+0.05*i ) ; // center of screen. (-1,0) is center left.
 		char buf[300];
-		if (stateEvaluate == 1) {
-			traveled[i] += sqrtf( (net.result[0]-oldEvaluate[0])*(net.result[0]-oldEvaluate[0]) + (net.result[1]-oldEvaluate[1])*(net.result[1]-oldEvaluate[1]) );
-		} else if (stateEvaluate == 0) {
-			stateEvaluate = 1;
+		if (stateEvaluate[i] == 1) {
+			traveled[i] += sqrtf( (net.result[0]-oldEvaluateX[i])*(net.result[0]-oldEvaluateX[i]) + (net.result[1]-oldEvaluateY[i])*(net.result[1]-oldEvaluateY[i]) );
+		} else if (stateEvaluate[i] == 0) {
+			stateEvaluate[i] = 1;
 		}
-		oldEvaluate[0] = net.result[0];
-		oldEvaluate[1] = net.result[1];
+		oldEvaluateX[i] = net.result[0];
+		oldEvaluateY[i] = net.result[1];
 		sprintf( buf, "[u]%f [x]%f [y]%f [t]%f", u, net.result[0], net.result[1], traveled[i]) ;
 		const char * p = buf ;
 		do glutBitmapCharacter( GLUT_BITMAP_HELVETICA_12, *p ); while( *(++p) ) ;

@@ -13,8 +13,6 @@ float oldEvaluateX[MAX_CURVE_N];
 float oldEvaluateY[MAX_CURVE_N];
 int stateEvaluate[MAX_CURVE_N] = {0}; // 0 = not evaluated, 1=evaluating, 2=done
 
-char* result_charbufs[MAX_CURVE_N];
-
 struct Boundary {
 	float x_max, y_max, x_min, y_min;
 } boundary;
@@ -22,12 +20,10 @@ struct Boundary {
 tsBSpline* splines[MAX_CURVE_N];
 int splines_cnt;
 
-FILE* fp;
-
 int debug = 0;
 
 void parse(char* filepath) {
-	fp = fopen(filepath, "r");
+	FILE* fp = fopen(filepath, "r");
 	if (fp == NULL) perror("Error opening file.");
 	else {
 		unsigned int ctrlp_cnt;
@@ -35,7 +31,7 @@ void parse(char* filepath) {
 		while ( fgets(buff, 100, fp) != NULL ) {
 
 			char* pch = strtok (buff," :\n");
-			int n_ctrlp;
+			unsigned int n_ctrlp;
 			if ( strncmp("SPLINE", pch,10) == 0 ) {
 				// check previous line 
 				if ( ctrlp_cnt != n_ctrlp*3 ) {
@@ -132,12 +128,12 @@ int main(int argc, char *argv[]) {
 	printf("parsing\n");
 	parse(argv[1]);
 	printf("parsing done\n");
+
 	for ( float u=0.0; u<=1.0f; u+=0.01 ) {
 		for ( int i=1; i<=splines_cnt; i++ ) {
 			tsDeBoorNet net;
 			ts_bspline_evaluate(splines[i], u, &net);
 
-			char buf[300];
 			if (stateEvaluate[i] == 1) {
 				traveled[i] += sqrtf( (net.result[0]-oldEvaluateX[i])*(net.result[0]-oldEvaluateX[i]) + (net.result[1]-oldEvaluateY[i])*(net.result[1]-oldEvaluateY[i]) );
 			} else if (stateEvaluate[i] == 0) {
@@ -145,11 +141,11 @@ int main(int argc, char *argv[]) {
 			}
 			oldEvaluateX[i] = net.result[0];
 			oldEvaluateY[i] = net.result[1];
-			//sprintf( buf, "[u]%f [x]%f [y]%f [t]%f", u, net.result[0], net.result[1], traveled[i]) ;
 
 			ts_deboornet_free(&net);
 		}
 	}
+
 	for ( int i=1; i<=splines_cnt; i++ ) {
 		printf("curve %d length = %f\n", i, traveled[i]);
 	}

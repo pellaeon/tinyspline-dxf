@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-I. -lglut -lGL -lm -lGLU
+CFLAGS=-std=c99 -Wall -Wextra -I. -lglut -lGL -lm -lGLU
 
 all:
-	$(CC) -std=c99 main.c tinyspline.c $(CFLAGS) -o test.out
-	$(CC) -std=c99 -g calculate_distance.c tinyspline.c $(CFLAGS) -o distance.out
+	$(CC) main.c tinyspline.c $(CFLAGS) -o test.out
+	$(CC) calculate_distance.c tinyspline.c $(CFLAGS) -o distance.out

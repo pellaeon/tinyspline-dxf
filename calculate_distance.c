@@ -26,10 +26,8 @@ FILE* fp;
 
 int debug = 0;
 
-void parse() {
-    //file_p = fopen("30x50-spline.nurbs", "r");
-    fp = fopen("1509077_Samsonite.nurbs", "r");
-    //fp = fopen("simple_two.nurbs", "r");
+void parse(char* filepath) {
+    fp = fopen(filepath, "r");
     if (fp == NULL) perror("Error opening file.");
     else {
 		unsigned int ctrlp_cnt;
@@ -130,9 +128,9 @@ void parse() {
     }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	printf("parsing\n");
-	parse();
+	parse(argv[1]);
 	printf("parsing done\n");
 	for ( float u=0.0; u<=1.0f; u+=0.01 ) {
 		for ( int i=1; i<=splines_cnt; i++ ) {

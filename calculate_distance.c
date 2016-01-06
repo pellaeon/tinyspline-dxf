@@ -16,7 +16,7 @@ int stateEvaluate[MAX_CURVE_N] = {0}; // 0 = not evaluated, 1=evaluating, 2=done
 char* result_charbufs[MAX_CURVE_N];
 
 struct Boundary {
-    float x_max, y_max, x_min, y_min;
+	float x_max, y_max, x_min, y_min;
 } boundary;
 
 tsBSpline* splines[MAX_CURVE_N];
@@ -27,22 +27,22 @@ FILE* fp;
 int debug = 0;
 
 void parse(char* filepath) {
-    fp = fopen(filepath, "r");
-    if (fp == NULL) perror("Error opening file.");
-    else {
+	fp = fopen(filepath, "r");
+	if (fp == NULL) perror("Error opening file.");
+	else {
 		unsigned int ctrlp_cnt;
 		char buff[100];
 		while ( fgets(buff, 100, fp) != NULL ) {
 
-            char* pch = strtok (buff," :\n");
+			char* pch = strtok (buff," :\n");
 			int n_ctrlp;
-            if ( strncmp("SPLINE", pch,10) == 0 ) {
+			if ( strncmp("SPLINE", pch,10) == 0 ) {
 				// check previous line 
 				if ( ctrlp_cnt != n_ctrlp*3 ) {
 					printf("Some control points might be missing\n");
 				}
 
-                if ( debug ) printf("SPLINE\n");
+				if ( debug ) printf("SPLINE\n");
 				ctrlp_cnt=0;
 				splines_cnt++;
 				/*
@@ -52,23 +52,23 @@ void parse(char* filepath) {
 				}*/
 				splines[splines_cnt] = malloc(sizeof(tsBSpline));
 
-            } else if ( strncmp("n_ctrlp", pch,10) == 0 ) {
+			} else if ( strncmp("n_ctrlp", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                sscanf(pch, "%d", &n_ctrlp);
-                if ( debug ) printf("n_ctrlp: %d\n", n_ctrlp);
+				pch = strtok (NULL, " :\n");
+				sscanf(pch, "%d", &n_ctrlp);
+				if ( debug ) printf("n_ctrlp: %d\n", n_ctrlp);
 				ts_bspline_new(3, 3, n_ctrlp, TS_CLAMPED ,splines[splines_cnt]);
 
-            } else if ( strncmp("ctrlp", pch,10) == 0 ) {
+			} else if ( strncmp("ctrlp", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                int i;
-                float ctrlp[3];
-                for (i=0; i<3 && pch!=NULL; i++) {
-                    sscanf(pch, "%f", ctrlp+i);
-                    pch = strtok (NULL, " :\n");
-                }
-                if ( debug ) printf ("ctrlp: %f %f %f\n", ctrlp[0], ctrlp[1], ctrlp[2]);
+				pch = strtok (NULL, " :\n");
+				int i;
+				float ctrlp[3];
+				for (i=0; i<3 && pch!=NULL; i++) {
+					sscanf(pch, "%f", ctrlp+i);
+					pch = strtok (NULL, " :\n");
+				}
+				if ( debug ) printf ("ctrlp: %f %f %f\n", ctrlp[0], ctrlp[1], ctrlp[2]);
 				splines[splines_cnt]->ctrlp[ctrlp_cnt] = ctrlp[0];
 				ctrlp_cnt++;
 				splines[splines_cnt]->ctrlp[ctrlp_cnt] = ctrlp[1];
@@ -76,56 +76,56 @@ void parse(char* filepath) {
 				splines[splines_cnt]->ctrlp[ctrlp_cnt] = ctrlp[2];
 				ctrlp_cnt++;
 
-            } else if ( strncmp("knot", pch,10) == 0 ) {
+			} else if ( strncmp("knot", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                float knot;
-                sscanf(pch, "%f", &knot);
-                if ( debug ) printf("knot: %f\n", knot);
+				pch = strtok (NULL, " :\n");
+				float knot;
+				sscanf(pch, "%f", &knot);
+				if ( debug ) printf("knot: %f\n", knot);
 
-            } else if ( strncmp("u_min", pch,10) == 0 ) {
+			} else if ( strncmp("u_min", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                float u_min;
-                sscanf(pch, "%f", &u_min);
-                if ( debug ) printf("u_min: %f\n", u_min);
+				pch = strtok (NULL, " :\n");
+				float u_min;
+				sscanf(pch, "%f", &u_min);
+				if ( debug ) printf("u_min: %f\n", u_min);
 
-            } else if ( strncmp("u_max", pch,10) == 0 ) {
+			} else if ( strncmp("u_max", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                float u_max;
-                sscanf(pch, "%f", &u_max);
-                if ( debug ) printf("u_max: %f\n", u_max);
+				pch = strtok (NULL, " :\n");
+				float u_max;
+				sscanf(pch, "%f", &u_max);
+				if ( debug ) printf("u_max: %f\n", u_max);
 
-            } else if ( strncmp("x_max", pch,10) == 0 ) {
+			} else if ( strncmp("x_max", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                sscanf(pch, "%f", &(boundary.x_max));
-                if ( debug ) printf("x_max: %f\n", boundary.x_max);
+				pch = strtok (NULL, " :\n");
+				sscanf(pch, "%f", &(boundary.x_max));
+				if ( debug ) printf("x_max: %f\n", boundary.x_max);
 
-            } else if ( strncmp("y_max", pch,10) == 0 ) {
+			} else if ( strncmp("y_max", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                sscanf(pch, "%f", &(boundary.y_max));
-                if ( debug ) printf("y_max: %f\n", boundary.y_max);
+				pch = strtok (NULL, " :\n");
+				sscanf(pch, "%f", &(boundary.y_max));
+				if ( debug ) printf("y_max: %f\n", boundary.y_max);
 
-            } else if ( strncmp("x_min", pch,10) == 0 ) {
+			} else if ( strncmp("x_min", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                sscanf(pch, "%f", &(boundary.x_min));
-                if ( debug ) printf("x_min: %f\n", boundary.x_min);
+				pch = strtok (NULL, " :\n");
+				sscanf(pch, "%f", &(boundary.x_min));
+				if ( debug ) printf("x_min: %f\n", boundary.x_min);
 
-            } else if ( strncmp("y_min", pch,10) == 0 ) {
+			} else if ( strncmp("y_min", pch,10) == 0 ) {
 
-                pch = strtok (NULL, " :\n");
-                sscanf(pch, "%f", &(boundary.y_min));
-                if ( debug ) printf("y_min: %f\n", boundary.y_min);
+				pch = strtok (NULL, " :\n");
+				sscanf(pch, "%f", &(boundary.y_min));
+				if ( debug ) printf("y_min: %f\n", boundary.y_min);
 
-            } else {
-                printf("Parsing error: %s\n", pch);
-            }
-        }
-    }
+			} else {
+				printf("Parsing error: %s\n", pch);
+			}
+		}
+	}
 }
 
 int main(int argc, char *argv[]) {

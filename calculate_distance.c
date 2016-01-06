@@ -11,6 +11,8 @@
 float traveled[MAX_CURVE_N] = {0.f};
 float oldEvaluateX[MAX_CURVE_N];
 float oldEvaluateY[MAX_CURVE_N];
+float u_min[MAX_CURVE_N];
+float u_max[MAX_CURVE_N];
 int stateEvaluate[MAX_CURVE_N] = {0}; // 0 = not evaluated, 1=evaluating, 2=done
 
 struct Boundary {
@@ -82,16 +84,14 @@ void parse(char* filepath) {
 			} else if ( strncmp("u_min", pch,10) == 0 ) {
 
 				pch = strtok (NULL, " :\n");
-				float u_min;
-				sscanf(pch, "%f", &u_min);
-				if ( debug ) printf("u_min: %f\n", u_min);
+				sscanf(pch, "%f", &u_min[splines_cnt]);
+				if ( debug ) printf("u_min: %f\n", u_min[splines_cnt]);
 
 			} else if ( strncmp("u_max", pch,10) == 0 ) {
 
 				pch = strtok (NULL, " :\n");
-				float u_max;
-				sscanf(pch, "%f", &u_max);
-				if ( debug ) printf("u_max: %f\n", u_max);
+				sscanf(pch, "%f", &u_max[splines_cnt]);
+				if ( debug ) printf("u_max: %f\n", u_max[splines_cnt]);
 
 			} else if ( strncmp("x_max", pch,10) == 0 ) {
 
@@ -129,8 +129,15 @@ int main(int argc, char *argv[]) {
 	parse(argv[1]);
 	printf("parsing done\n");
 
-	for ( float u=0.0; u<=1.0f; u+=0.01 ) {
-		for ( int i=1; i<=splines_cnt; i++ ) {
+	for ( int i=1; i<=splines_cnt; i++ ) {
+
+		float min = u_min[i];
+		float max = u_max[i];
+
+		short first = 1;
+
+		for ( float u=min; u<=max; u+=0.01 ) {
+
 			tsDeBoorNet net;
 			ts_bspline_evaluate(splines[i], u, &net);
 
@@ -142,11 +149,14 @@ int main(int argc, char *argv[]) {
 			oldEvaluateX[i] = net.result[0];
 			oldEvaluateY[i] = net.result[1];
 
+			if (first && i > 1) {
+				first = 0;
+				printf("idle_distance: %lf\n", sqrtf( (net.result[0]-oldEvaluateX[i-1])*(net.result[0]-oldEvaluateX[i-1]) + (net.result[1]-oldEvaluateY[i-1])*(net.result[1]-oldEvaluateY[i-1]) ));
+			}
+
 			ts_deboornet_free(&net);
 		}
-	}
 
-	for ( int i=1; i<=splines_cnt; i++ ) {
 		printf("curve %d length = %f\n", i, traveled[i]);
 	}
 	

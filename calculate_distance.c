@@ -5,19 +5,20 @@
 #include <math.h>
 #include <stdarg.h>   //  To use functions with variables arguments
 #include <string.h>
+#include <float.h>
 
 #define MAX_CURVE_N 100
 
-float traveled[MAX_CURVE_N] = {0.f};
-float oldEvaluateX[MAX_CURVE_N];
-float oldEvaluateY[MAX_CURVE_N];
+long double traveled[MAX_CURVE_N] = {0.f};
+long double oldEvaluateX[MAX_CURVE_N];
+long double oldEvaluateY[MAX_CURVE_N];
 float u_min[MAX_CURVE_N];
 float u_max[MAX_CURVE_N];
 int stateEvaluate[MAX_CURVE_N] = {0}; // 0 = not evaluated, 1=evaluating, 2=done
 
 struct Boundary {
 	float x_max, y_max, x_min, y_min;
-} boundary;
+} boundary = { .x_max = FLT_MIN, .y_max = FLT_MIN, .x_min = FLT_MAX, .y_min = FLT_MAX };
 
 tsBSpline* splines[MAX_CURVE_N];
 int splines_cnt;
@@ -129,6 +130,9 @@ int main(int argc, char *argv[]) {
 	parse(argv[1]);
 	printf("parsing done\n");
 
+	long double total_length = 0;
+	long double total_idle = 0;
+
 	for ( int i=1; i<=splines_cnt; i++ ) {
 
 		float min = u_min[i];
@@ -142,23 +146,49 @@ int main(int argc, char *argv[]) {
 			ts_bspline_evaluate(splines[i], u, &net);
 
 			if (stateEvaluate[i] == 1) {
-				traveled[i] += sqrtf( (net.result[0]-oldEvaluateX[i])*(net.result[0]-oldEvaluateX[i]) + (net.result[1]-oldEvaluateY[i])*(net.result[1]-oldEvaluateY[i]) );
+				traveled[i] += sqrtl( (net.result[0]-oldEvaluateX[i])*(net.result[0]-oldEvaluateX[i]) + (net.result[1]-oldEvaluateY[i])*(net.result[1]-oldEvaluateY[i]) );
 			} else if (stateEvaluate[i] == 0) {
 				stateEvaluate[i] = 1;
 			}
 			oldEvaluateX[i] = net.result[0];
 			oldEvaluateY[i] = net.result[1];
 
+			////////////////////////////////////////
+			// update boundary
+			////////////////////////////////////////
+
+			if (boundary.x_min > net.result[0])
+				boundary.x_min = net.result[0];
+
+			if (boundary.x_max < net.result[0])
+				boundary.x_max = net.result[0];
+
+			if (boundary.y_min > net.result[1])
+				boundary.y_min = net.result[1];
+
+			if (boundary.y_max < net.result[1])
+				boundary.y_max = net.result[1];
+
+			////////////////////////////////////////
+
 			if (first && i > 1) {
 				first = 0;
-				printf("idle_distance: %lf\n", sqrtf( (net.result[0]-oldEvaluateX[i-1])*(net.result[0]-oldEvaluateX[i-1]) + (net.result[1]-oldEvaluateY[i-1])*(net.result[1]-oldEvaluateY[i-1]) ));
+				const long double idle = sqrtl( (net.result[0]-oldEvaluateX[i-1])*(net.result[0]-oldEvaluateX[i-1]) + (net.result[1]-oldEvaluateY[i-1])*(net.result[1]-oldEvaluateY[i-1]) );
+				printf("idle_distance: %Lf\n", idle);
+				total_idle += idle;
 			}
 
 			ts_deboornet_free(&net);
 		}
 
-		printf("curve %d length = %f\n", i, traveled[i]);
+		printf("curve %d length = %Lf\n", i, traveled[i]);
+		total_length += traveled[i];
 	}
+
+	printf("boundary : %lf, %lf\n", boundary.x_max - boundary.x_min, boundary.y_max - boundary.y_min);
+	printf("total curve length = %Lf\n", total_length);
+	printf("total idle length = %Lf\n", total_idle);
+	printf("total length = %Lf\n", total_length + total_idle);
 	
 	return 0;
 }

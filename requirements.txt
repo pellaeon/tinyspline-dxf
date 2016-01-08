@@ -1,0 +1,2 @@
+dxfgrabber==0.7.5
+wheel==0.24.0

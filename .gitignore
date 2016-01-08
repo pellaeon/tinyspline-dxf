@@ -1,2 +1,11 @@
+*.pyc
+*.pyo
+*.swp
 .DS_Store
 real_data/
+.Python
+bin/
+include/
+lib/
+pip-selfcheck.json
+requirements.txt

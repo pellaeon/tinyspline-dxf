@@ -36,10 +36,12 @@ void parse(char* filepath) {
 			char* pch = strtok (buff," :\n");
 			unsigned int n_ctrlp;
 			if ( strncmp("SPLINE", pch,10) == 0 ) {
+                /*
 				// check previous line 
 				if ( ctrlp_cnt != n_ctrlp*3 ) {
 					printf("Some control points might be missing\n");
 				}
+                */
 
 				if ( debug ) printf("SPLINE\n");
 				ctrlp_cnt=0;
@@ -126,9 +128,9 @@ void parse(char* filepath) {
 }
 
 int main(int argc, char *argv[]) {
-	printf("parsing\n");
+	if ( debug ) printf("parsing\n");
 	parse(argv[1]);
-	printf("parsing done\n");
+	if ( debug ) printf("parsing done\n");
 
 	long double total_length = 0;
 	long double total_idle = 0;
@@ -174,21 +176,24 @@ int main(int argc, char *argv[]) {
 			if (first && i > 1) {
 				first = 0;
 				const long double idle = sqrtl( (net.result[0]-oldEvaluateX[i-1])*(net.result[0]-oldEvaluateX[i-1]) + (net.result[1]-oldEvaluateY[i-1])*(net.result[1]-oldEvaluateY[i-1]) );
-				printf("idle_distance: %Lf\n", idle);
+				if ( debug ) printf("idle_distance: %Lf\n", idle);
 				total_idle += idle;
 			}
 
 			ts_deboornet_free(&net);
 		}
 
-		printf("curve %d length = %Lf\n", i, traveled[i]);
+		if ( debug ) printf("curve %d length = %Lf\n", i, traveled[i]);
 		total_length += traveled[i];
 	}
 
-	printf("boundary : %lf, %lf\n", boundary.x_max - boundary.x_min, boundary.y_max - boundary.y_min);
-	printf("total curve length = %Lf\n", total_length);
-	printf("total idle length = %Lf\n", total_idle);
-	printf("total length = %Lf\n", total_length + total_idle);
+    if ( debug ) printf("boundary: ");
+	printf("%lf %lf ", boundary.x_max - boundary.x_min, boundary.y_max - boundary.y_min);
+    if ( debug ) printf("\nidel interval: ");
+	printf("%Lf ", total_idle);
+    if ( debug ) printf("\nwork interval: ");
+	printf("%Lf\n", total_length);
+	if ( debug ) printf("total interval: %Lf\n", total_length + total_idle);
 	
 	return 0;
 }
